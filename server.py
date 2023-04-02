@@ -8,7 +8,7 @@ BUFFER_SIZE = 1024  # change to a desired buffer size
 
 
 def get_file_info(data: bytes) -> (str, int):
-    return data[8:].decode(), int.from_bytes(data[:8],byteorder='big')
+    return data[8:].decode(), int.from_bytes(data[:8], byteorder='big')
 
 
 def upload_file(conn_socket: socket, file_name: str, file_size: int):
@@ -19,12 +19,14 @@ def upload_file(conn_socket: socket, file_name: str, file_size: int):
         retrieved_size = 0
         try:
             while retrieved_size < file_size:
-                # TODO: section 1 step 6a
-                # TODO: section 1 stop 6b
-                # TODO: section 1 stop 6c
+                chunk, address = conn_socket.recvfrom(BUFFER_SIZE)
+                file.write(chunk)
+                retrieved_size += chunk
+                conn_socket.sendto(b'received', address)
         except OSError as oe:
             print(oe)
             os.remove(file_name)
+
 
 def start_server(ip, port):
     # create a TCP socket object
@@ -38,9 +40,10 @@ def start_server(ip, port):
             (conn_socket, addr) = server_socket.accept()
             # TODO: section 1 step 2
             # expecting an 8-byte byte string for file size followed by file name
-            # TODO: section 1 step 3
+            info, address = server_socket.recvfrom(BUFFER_SIZE)
+            file_name, file_size = get_file_info(info)
             print(f'Received: {file_name} with size = {file_size}')
-            # TODO: section 1 step 4
+            server_socket.sendto(b'go ahead', address)
             upload_file(conn_socket, file_name, file_size)
             conn_socket.close()
     except KeyboardInterrupt as ki:
